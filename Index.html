@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Munny Book</title>
+  <meta name="description" content="Livres du domaine public et univers Harry Potter, en plusieurs langues.">
+  <link rel="preconnect" href="https://gutendex.com">
+  <link rel="preconnect" href="https://openlibrary.org">
+  <link rel="preconnect" href="https://covers.openlibrary.org">
+  <link rel="preconnect" href="https://potterapi-fedeperin.vercel.app">
+  <link rel="icon" href="logo.png">
+  <style>
+    :root {
+      --bg-1: #efe6ff; --bg-2: #fbe9dc; --bg-3: #dfeefe;
+      --glass: rgba(255, 255, 255, 0.55);
+      --glass-strong: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.75);
+      --text: #2b2535; --muted: #6f6680;
+      --accent: #6e4c96; --accent-dark: #55397a; --accent-soft: rgba(110, 76, 150, 0.12);
+      --radius-lg: 24px; --radius-md: 16px; --radius-pill: 999px;
+      --shadow: 0 10px 30px rgba(60, 40, 90, 0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-1: #1b1530; --bg-2: #2a1a24; --bg-3: #12213a;
+        --glass: rgba(40, 32, 60, 0.45);
+        --glass-strong: rgba(50, 40, 75, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --text: #f2eefa; --muted: #b3a9c6;
+        --accent: #b79be0; --accent-dark: #cdb3ee; --accent-soft: rgba(183, 155, 224, 0.18);
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text); line-height: 1.5;
+      background: linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+      background-attachment: fixed;
+    }
+    /* Quelques halos colorés derrière le verre (léger, pas d'animation) */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 20%, var(--accent-soft), transparent 40%),
+        radial-gradient(circle at 85% 70%, var(--accent-soft), transparent 45%);
+    }
+
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+    }
+
+    header { max-width: 1100px; margin: 1rem auto 0; padding: 0 1rem; }
+    .top {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 1rem 1.25rem;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .logo { width: 48px; height: 48px; object-fit: contain; border-radius: var(--radius-md); }
+    h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.6rem; line-height: 1.1; }
+    .tagline { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+    main { max-width: 1100px; margin: 1rem auto; padding: 0 1rem 2rem; }
+
+    input, select, button { font: inherit; color: var(--text); }
+    select, input[type="search"], input[type="number"] {
+      padding: 0.6rem 0.9rem; border-radius: var(--radius-pill);
+      border: 1px solid var(--glass-border); background: var(--glass-strong);
+      outline: none;
+    }
+    select:focus, input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+    button {
+      cursor: pointer; border: none; border-radius: var(--radius-pill);
+      padding: 0.6rem 1.1rem; background: var(--accent); color: #fff;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    button:hover { background: var(--accent-dark); }
+    button:active { transform: scale(0.98); }
+    button.ghost { background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border); }
+    button.ghost.active { background: var(--accent); color: #fff; border-color: transparent; }
+    button.ghost:hover { background: var(--accent-soft); }
+
+    .ui-lang select { font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+
+    .tabs { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .tabs button { padding: 0.55rem 1.1rem; }
+
+    .panel { padding: 1rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+    .toolbar .grow { flex: 1 1 240px; }
+    .toolbar input[type="search"] { width: 100%; }
+    .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .chips button { padding: 0.45rem 0.9rem; font-size: 0.9rem; }
+
+    .status { color: var(--muted); min-height: 1.4rem; text-align: center; font-size: 0.9rem; margin: 0.5rem 0; }
+    .note { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.5rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 0.9rem; }
+    .card {
+      display: flex; flex-direction: column; padding: 0.75rem;
+      background: var(--glass-strong); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md); box-shadow: var(--shadow);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      min-width: 0;
+    }
+    .cover {
+      width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 12px;
+      background: var(--accent-soft); display: block;
+    }
+    .cover.none {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem; color: var(--accent);
+    }
+    .card h2 { font-size: 0.98rem; margin: 0.6rem 0 0.2rem; line-height: 1.3; overflow-wrap: anywhere; }
+    .sub { margin: 0; color: var(--muted); font-size: 0.85rem; }
+    .meta { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.75rem; }
+    .text {
+      margin: 0.4rem 0 0; font-size: 0.82rem; color: var(--text); opacity: 0.85;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card .actions { margin-top: auto; display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.6rem; }
+    .card .actions button, .card .actions a {
+      padding: 0.5rem 0.8rem; font-size: 0.88rem; text-align: center; text-decoration: none;
+      border-radius: var(--radius-pill);
+    }
+    .card .actions .read { background: var(--accent); color: #fff; display: block; }
+    .card .actions .read:hover { background: var(--accent-dark); }
+    .card .actions .add { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .card .actions .add.saved { background: var(--accent); color: #fff; }
+
+    .more { display: block; margin: 1.25rem auto 0; }
+    .hidden { display: none !important; }
+
+    .tracker { display: flex; flex-direction: column; gap: 0.75rem; max-width: 720px; margin: 0 auto; }
+    .tracked { display: flex; gap: 1rem; padding: 1rem; }
+    .tracked .cover { width: 72px; flex-shrink: 0; }
+    .tracked-body { flex: 1; min-width: 0; }
+    .tracked h2 { font-size: 1rem; margin: 0; }
+    .tracked .sub { margin: 0 0 0.5rem; }
+    .progress { height: 8px; background: var(--accent-soft); border-radius: 999px; overflow: hidden; margin: 0.5rem 0; }
+    .progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.3s ease; }
+    .page-inputs { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; font-size: 0.9rem; }
+    .page-inputs input { width: 90px; padding: 0.35rem 0.7rem; }
+    .tracked .remove { background: transparent; color: var(--muted); padding: 0.25rem 0.6rem; align-self: flex-start; margin-left: auto; }
+    .tracked .read { display: inline-block; margin-top: 0.5rem; background: var(--accent); color: #fff; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: var(--radius-pill); font-size: 0.88rem; }
+    .empty { text-align: center; color: var(--muted); padding: 2rem 0; }
+
+    footer { text-align: center; color: var(--muted); font-size: 0.82rem; padding: 1rem; }
+    footer a { color: var(--accent); }
+
+    @media (max-width: 520px) {
+      .top { flex-direction: column; align-items: flex-start; }
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .tracked { flex-direction: column; }
+      .tracked .cover { width: 96px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top glass">
+      <div class="brand">
+        <img src="logo.png" alt="Munny Book" class="logo" width="48" height="48">
+        <div>
+          <h1>Munny Book</h1>
+          <p class="tagline" data-i18n="tagline"></p>
+        </div>
+      </div>
+      <div class="ui-lang">
+        <select id="ui-lang" aria-label="Language"></select>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <nav class="tabs">
+      <button class="ghost active" id="tab-explore" data-tab="explore" data-i18n="explore"></button>
+      <button class="ghost" id="tab-potter" data-tab="potter" data-i18n="potter"></button>
+      <button class="ghost" id="tab-list" data-tab="list" data-i18n="list"></button>
+    </nav>
+
+    <!-- ===== Explorer : livres ===== -->
+    <section id="view-explore" class="panel glass">
+      <form id="search-form" class="toolbar">
+        <input class="grow" type="search" id="query" data-i18n-ph="placeholder" autocomplete="off">
+        <button type="submit" data-i18n="search"></button>
+        <select id="book-lang" aria-label="Book language"></select>
+      </form>
+      <p id="status" class="status"></p>
+      <section id="results" class="grid"></section>
+      <button id="more" class="more hidden" data-i18n="more"></button>
+    </section>
+
+    <!-- ===== Harry Potter ===== -->
+    <section id="view-potter" class="panel glass hidden">
+      <p class="note" data-i18n="potterHint"></p>
+      <div class="chips" id="potter-cats">
+        <button class="ghost active" data-cat="books" data-i18n="cat_books"></button>
+        <button class="ghost" data-cat="characters" data-i18n="cat_characters"></button>
+        <button class="ghost" data-cat="houses" data-i18n="cat_houses"></button>
+        <button class="ghost" data-cat="spells" data-i18n="cat_spells"></button>
+      </div>
+      <div class="toolbar">
+        <input class="grow" type="search" id="potter-query" data-i18n-ph="potterSearch" autocomplete="off">
+      </div>
+      <p id="potter-note" class="note"></p>
+      <p id="potter-status" class="status"></p>
+      <section id="potter-results" class="grid"></section>
+      <button id="potter-more" class="more ghost hidden" data-i18n="more"></button>
+    </section>
+
+    <!-- ===== Ma liste ===== -->
+    <section id="view-list" class="hidden">
+      <div id="tracker" class="tracker"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p><span data-i18n="footer"></span> <a href="https://www.gutenberg.org" target="_blank" rel="noopener">Project Gutenberg</a> · <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a> · <a href="https://github.com/fedeperin/potterapi" target="_blank" rel="noopener">PotterAPI</a></p>
+  </footer>
+
+  <script src="api.js"></script>
+  <script>
+    // ================= Traductions de l'interface =================
+    const I18N = {
+      fr: {
+        tagline: "Des livres à lire, dans la langue de ton choix",
+        explore: "Explorer", potter: "Harry Potter", list: "Ma liste",
+        placeholder: "Titre ou auteur...", search: "Rechercher", allLangs: "Toutes les langues",
+        more: "Voir plus", loading: "Chargement...", none: "Aucun livre trouvé.", source: "Source",
+        add: "Ajouter à ma liste", inList: "Dans ma liste ✓", read: "Lire", resume: "Reprendre la lecture",
+        remove: "Retirer", emptyList: "Ta liste est vide. Ajoute des livres depuis l'onglet Explorer.",
+        page: "Page", of: "sur", total: "Total", needPages: "Indique le nombre de pages", readPct: "lu",
+        footer: "Livres du domaine public via", noSource: "Aucune source de livres ne répond. Vérifie ta connexion et réessaie.",
+        unknownAuthor: "Auteur inconnu", uiLabel: "Langue du site",
+        potterHint: "Livres, personnages, maisons et sorts de l'univers Harry Potter",
+        potterSearch: "Chercher un personnage, un sort, une maison...", potterNone: "Rien trouvé.",
+        potterErr: "L'API Harry Potter ne répond pas pour le moment.",
+        cat_books: "Livres", cat_characters: "Personnages", cat_houses: "Maisons", cat_spells: "Sorts",
+        pagesUnit: "pages", releaseLabel: "Sortie", founderLabel: "Fondateur", animalLabel: "Animal",
+        colorsLabel: "Couleurs", actorLabel: "Acteur", houseLabel: "Maison", potterData: "Données : PotterAPI"
+      },
+      en: {
+        tagline: "Books to read, in the language of your choice",
+        explore: "Explore", potter: "Harry Potter", list: "My list",
+        placeholder: "Title or author...", search: "Search", allLangs: "All languages",
+        more: "Show more", loading: "Loading...", none: "No books found.", source: "Source",
+        add: "Add to my list", inList: "In my list ✓", read: "Read", resume: "Continue reading",
+        remove: "Remove", emptyList: "Your list is empty. Add books from the Explore tab.",
+        page: "Page", of: "of", total: "Total", needPages: "Enter the number of pages", readPct: "read",
+        footer: "Public domain books via", noSource: "No book source is responding. Check your connection and try again.",
+        unknownAuthor: "Unknown author", uiLabel: "Site language",
+        potterHint: "Books, characters, houses and spells from the Harry Potter world",
+        potterSearch: "Search a character, a spell, a house...", potterNone: "Nothing found.",
+        potterErr: "The Harry Potter API is not responding right now.",
+        cat_books: "Books", cat_characters: "Characters", cat_houses: "Houses", cat_spells: "Spells",
+        pagesUnit: "pages", releaseLabel: "Released", founderLabel: "Founder", animalLabel: "Animal",
+        colorsLabel: "Colors", actorLabel: "Actor", houseLabel: "House", potterData: "Data: PotterAPI"
+      },
+      pt: {
+        tagline: "Livros para ler, na língua que você escolher",
+        explore: "Explorar", potter: "Harry Potter", list: "Minha lista",
+        placeholder: "Título ou autor...", search: "Pesquisar", allLangs: "Todos os idiomas",
+        more: "Ver mais", loading: "Carregando...", none: "Nenhum livro encontrado.", source: "Fonte",
+        add: "Adicionar à minha lista", inList: "Na minha lista ✓", read: "Ler", resume: "Continuar lendo",
+        remove: "Remover", emptyList: "Sua lista está vazia. Adicione livros na aba Explorar.",
+        page: "Página", of: "de", total: "Total", needPages: "Informe o número de páginas", readPct: "lido",
+        footer: "Livros de domínio público via", noSource: "Nenhuma fonte de livros respondeu. Verifique sua conexão e tente novamente.",
+        unknownAuthor: "Autor desconhecido", uiLabel: "Idioma do site",
+        potterHint: "Livros, personagens, casas e feitiços do mundo de Harry Potter",
+        potterSearch: "Buscar personagem, feitiço, casa...", potterNone: "Nada encontrado.",
+        potterErr: "A API de Harry Potter não está respondendo agora.",
+        cat_books: "Livros", cat_characters: "Personagens", cat_houses: "Casas", cat_spells: "Feitiços",
+        pagesUnit: "páginas", releaseLabel: "Lançamento", founderLabel: "Fundador", animalLabel: "Animal",
+        colorsLabel: "Cores", actorLabel: "Ator", houseLabel: "Casa", potterData: "Dados: PotterAPI"
+      },
+      es: {
+        tagline: "Libros para leer, en el idioma que elijas",
+        explore: "Explorar", potter: "Harry Potter", list: "Mi lista",
+        placeholder: "Título o autor...", search: "Buscar", allLangs: "Todos los idiomas",
+        more: "Ver más", loading: "Cargando...", none: "No se encontraron libros.", source: "Fuente",
+        add: "Añadir a mi lista", inList: "En mi lista ✓", read: "Leer", resume: "Seguir leyendo",
+        remove: "Quitar", emptyList: "Tu lista está vacía. Añade libros desde la pestaña Explorar.",
+        page: "Página", of: "de", total: "Total", needPages: "Indica el número de páginas", readPct: "leído",
+        footer: "Libros de dominio público vía", noSource: "Ninguna fuente de libros responde. Revisa tu conexión e inténtalo de nuevo.",
+        unknownAuthor: "Autor desconocido", uiLabel: "Idioma del sitio",
+        potterHint: "Libros, personajes, casas y hechizos del mundo de Harry Potter",
+        potterSearch: "Buscar personaje, hechizo, casa...", potterNone: "No se encontró nada.",
+        potterErr: "La API de Harry Potter no responde ahora.",
+        cat_books: "Libros", cat_characters: "Personajes", cat_houses: "Casas", cat_spells: "Hechizos",
+        pagesUnit: "páginas", releaseLabel: "Lanzamiento", founderLabel: "Fundador", animalLabel: "Animal",
+        colorsLabel: "Colores", actorLabel: "Actor", houseLabel: "Casa", potterData: "Datos: PotterAPI"
+      },
+      de: {
+        tagline: "Bücher zum Lesen, in der Sprache deiner Wahl",
+        explore: "Entdecken", potter: "Harry Potter", list: "Meine Liste",
+        placeholder: "Titel oder Autor...", search: "Suchen", allLangs: "Alle Sprachen",
+        more: "Mehr anzeigen", loading: "Lädt...", none: "Keine Bücher gefunden.", source: "Quelle",
+        add: "Zu meiner Liste", inList: "In meiner Liste ✓", read: "Lesen", resume: "Weiterlesen",
+        remove: "Entfernen", emptyList: "Deine Liste ist leer. Füge Bücher im Reiter Entdecken hinzu.",
+        page: "Seite", of: "von", total: "Gesamt", needPages: "Anzahl der Seiten angeben", readPct: "gelesen",
+        footer: "Gemeinfreie Bücher über", noSource: "Keine Buchquelle antwortet. Prüfe deine Verbindung und versuche es erneut.",
+        unknownAuthor: "Unbekannter Autor", uiLabel: "Sprache der Seite",
+        potterHint: "Bücher, Figuren, Häuser und Zauber aus der Harry-Potter-Welt",
+        potterSearch: "Figur, Zauber, Haus suchen...", potterNone: "Nichts gefunden.",
+        potterErr: "Die Harry-Potter-API antwortet gerade nicht.",
+        cat_books: "Bücher", cat_characters: "Figuren", cat_houses: "Häuser", cat_spells: "Zauber",
+        pagesUnit: "Seiten", releaseLabel: "Erscheinung", founderLabel: "Gründer", animalLabel: "Tier",
+        colorsLabel: "Farben", actorLabel: "Schauspieler", houseLabel: "Haus", potterData: "Daten: PotterAPI (Englisch)"
+      },
+      it: {
+        tagline: "Libri da leggere, nella lingua che preferisci",
+        explore: "Esplora", potter: "Harry Potter", list: "La mia lista",
+        placeholder: "Titolo o autore...", search: "Cerca", allLangs: "Tutte le lingue",
+        more: "Mostra altri", loading: "Caricamento...", none: "Nessun libro trovato.", source: "Fonte",
+        add: "Aggiungi alla lista", inList: "Nella mia lista ✓", read: "Leggi", resume: "Continua a leggere",
+        remove: "Rimuovi", emptyList: "La tua lista è vuota. Aggiungi libri dalla scheda Esplora.",
+        page: "Pagina", of: "di", total: "Totale", needPages: "Indica il numero di pagine", readPct: "letto",
+        footer: "Libri di pubblico dominio tramite", noSource: "Nessuna fonte di libri risponde. Controlla la connessione e riprova.",
+        unknownAuthor: "Autore sconosciuto", uiLabel: "Lingua del sito",
+        potterHint: "Libri, personaggi, case e incantesimi del mondo di Harry Potter",
+        potterSearch: "Cerca personaggio, incantesimo, casa...", potterNone: "Nessun risultato.",
+        potterErr: "L'API di Harry Potter non risponde al momento.",
+        cat_books: "Libri", cat_characters: "Personaggi", cat_houses: "Case", cat_spells: "Incantesimi",
+        pagesUnit: "pagine", releaseLabel: "Uscita", founderLabel: "Fondatore", animalLabel: "Animale",
+        colorsLabel: "Colori", actorLabel: "Attore", houseLabel: "Casa", potterData: "Dati: PotterAPI"
+      },
+      uk: {
+        tagline: "Книжки для читання мовою, яку ти обереш",
+        explore: "Пошук", potter: "Гаррі Поттер", list: "Мій список",
+        placeholder: "Назва або автор...", search: "Шукати", allLangs: "Усі мови",
+        more: "Показати ще", loading: "Завантаження...", none: "Книжок не знайдено.", source: "Джерело",
+        add: "Додати до списку", inList: "У моєму списку ✓", read: "Читати", resume: "Продовжити читання",
+        remove: "Видалити", emptyList: "Твій список порожній. Додай книжки на вкладці «Пошук».",
+        page: "Сторінка", of: "з", total: "Усього", needPages: "Вкажи кількість сторінок", readPct: "прочитано",
+        footer: "Книжки публічного домену через", noSource: "Жодне джерело книжок не відповідає. Перевір з'єднання та спробуй ще раз.",
+        unknownAuthor: "Невідомий автор", uiLabel: "Мова сайту",
+        potterHint: "Книжки, персонажі, факультети та закляття зі світу Гаррі Поттера",
+        potterSearch: "Пошук персонажа, закляття, факультету...", potterNone: "Нічого не знайдено.",
+        potterErr: "API Гаррі Поттера зараз не відповідає.",
+        cat_books: "Книжки", cat_characters: "Персонажі", cat_houses: "Факультети", cat_spells: "Закляття",
+        pagesUnit: "сторінок", releaseLabel: "Вихід", founderLabel: "Засновник", animalLabel: "Тварина",
+        colorsLabel: "Кольори", actorLabel: "Актор", houseLabel: "Факультет", potterData: "Дані: PotterAPI"
+      }
+    };
+
+    const UI_LANGS = [
+      { code: "fr", label: "Français" }, { code: "en", label: "English" }, { code: "pt", label: "Português" },
+      { code: "es", label: "Español" }, { code: "de", label: "Deutsch" }, { code: "it", label: "Italiano" },
+      { code: "uk", label: "Українська" }
+    ];
+
+    // Langues disponibles pour les livres (Gutendex / Open Library)
+    const BOOK_LANGS = [
+      { code: "fr", label: "Français" }, { code: "en", label: "English" }, { code: "es", label: "Español" },
+      { code: "pt", label: "Português" }, { code: "de", label: "Deutsch" }, { code: "it", label: "Italiano" },
+      { code: "uk", label: "Українська" }, { code: "nl", label: "Nederlands" }, { code: "la", label: "Latina" },
+      { code: "el", label: "Ελληνικά" }, { code: "ru", label: "Русский" }, { code: "zh", label: "中文" },
+      { code: "ja", label: "日本語" }, { code: "ar", label: "العربية" }
+    ];
+
+    // ================= Utilitaires =================
+    function detectUiLang() {
+      const saved = localStorage.getItem("munny-ui-lang");
+      if (saved && I18N[saved]) return saved;
+      const browser = (navigator.language || "en").slice(0, 2);
+      return I18N[browser] ? browser : "en";
+    }
+    let uiLang = detectUiLang();
+    const t = (key) => (I18N[uiLang] && I18N[uiLang][key]) || I18N.en[key] || key;
+
+    // Quelques éléments "mémoire" de la liste
+    const STORE_KEY = "munny-library-v1";
+    function loadLibrary() {
+      try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+    }
+    function saveLibrary() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(library)); }
+      catch (err) { console.error("Sauvegarde impossible :", err); }
+    }
+    let library = loadLibrary();
+
+    const $ = (id) => document.getElementById(id);
+    const form = $("search-form"), queryInput = $("query"), bookLangSelect = $("book-lang");
+    const uiLangSelect = $("ui-lang"), results = $("results"), status = $("status"), moreBtn = $("more");
+    const tracker = $("tracker");
+    const potterResults = $("potter-results"), potterStatus = $("potter-status"), potterMore = $("potter-more");
+    const potterQuery = $("potter-query"), potterNote = $("potter-note");
+
+    let bookState = { query: "", lang: "", page: 1, lastStatus: "", lastSource: "" };
+    let potterState = { cat: "books", query: "", items: [], page: 1, lang: "" };
+    const PAGE_POTTER = 24;
+
+    // ================= Traduction de l'interface =================
+    function applyI18n() {
+      document.documentElement.lang = uiLang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+      document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+
+      uiLangSelect.setAttribute("aria-label", t("uiLabel"));
+      uiLangSelect.replaceChildren(...UI_LANGS.map((l) => new Option(l.label, l.code, false, l.code === uiLang)));
+
+      const keep = bookLangSelect.options.length ? bookLangSelect.value : bookState.lang;
+      bookLangSelect.replaceChildren(
+        new Option(t("allLangs"), ""),
+        ...BOOK_LANGS.map((l) => new Option(l.label, l.code))
+      );
+      bookLangSelect.value = keep;
+      bookState.lang = keep;
+
+      renderBookStatus();
+      if (potterState.items.length) renderPotter();
+      if (!$("view-list").classList.contains("hidden")) renderTracker();
+    }
+
+    uiLangSelect.addEventListener("change", () => {
+      uiLang = uiLangSelect.value;
+      localStorage.setItem("munny-ui-lang", uiLang);
+      applyI18n();
+      loadBooks(true);
+      loadPotterCategory(potterState.cat);
+    });
+
+    // ================= Onglets =================
+    function showTab(name) {
+      ["explore", "potter", "list"].forEach((tab) => {
+        $("view-" + tab).classList.toggle("hidden", tab !== name);
+        $("tab-" + tab).classList.toggle("active", tab === name);
+      });
+      if (name === "list") renderTracker();
+      if (name === "potter" && !potterState.items.length) loadPotterCategory(potterState.cat);
+    }
+    document.querySelectorAll(".tabs [data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => showTab(btn.dataset.tab));
+    });
+
+    // ================= Livres =================
+    function renderBookStatus() {
+      const s = bookState.lastStatus;
+      if (s === "loading") status.textContent = t("loading");
+      else if (s === "none") status.textContent = t("none");
+      else if (s === "error") status.textContent = t("noSource");
+      else if (s === "ok") status.textContent = bookState.lastSource ? `${t("source")} : ${bookState.lastSource}` : "";
+      else status.textContent = "";
+    }
+
+    function makeBookCard(book) {
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const cover = document.createElement("img");
+      cover.className = "cover";
+      cover.loading = "lazy";
+      cover.decoding = "async";
+      cover.alt = book.title;
+      if (book.cover) cover.src = book.cover;
+      else { cover.remove(); }
+      if (!book.cover) {
+        const ph = document.createElement("div");
+        ph.className = "cover none";
+        ph.textContent = "📖";
+        card.append(ph);
+      } else {
+        cover.onerror = () => { cover.replaceWith(Object.assign(document.createElement("div"), { className: "cover none", textContent: "📖" })); };
+        card.append(cover);
+      }
+
+      const title = document.createElement("h2");
+      title.textContent = book.title;
+      const author = document.createElement("p");
+      author.className = "sub";
+      author.textContent = book.authors || t("unknownAuthor");
+      const langs = document.createElement("p");
+      langs.className = "meta";
+      langs.textContent = book.languages.join(" / ").toUpperCase();
+      card.append(title, author, langs);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const addBtn = document.createElement("button");
+      addBtn.className = "add" + (library[book.id] ? " saved" : "");
+      addBtn.textContent = library[book.id] ? t("inList") : t("add");
+      addBtn.addEventListener("click", () => {
+        if (library[book.id]) delete library[book.id];
+        else library[book.id] = {
+          title: book.title, authors: book.authors, cover: book.cover, readUrl: book.readUrl,
+          pages: book.pages, currentPage: 0, totalPages: book.pages || 0,
+        };
+        saveLibrary();
+        addBtn.classList.toggle("saved", !!library[book.id]);
+        addBtn.textContent = library[book.id] ? t("inList") : t("add");
+      });
+      actions.append(addBtn);
+
+      if (book.readUrl) {
+        const link = document.createElement("a");
+        link.className = "read";
+        link.href = book.readUrl;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = t("read");
+        actions.append(link);
+      }
+      card.append(actions);
+      return card;
+    }
+
+    async function loadBooks(reset) {
+      bookState.lastStatus = "loading";
+      renderBookStatus();
+      try {
+        const { books, hasNext, source } = await searchBooks({
+          query: bookState.query, lang: bookState.lang, page: bookState.page,
+        });
+        if (reset) results.replaceChildren();
+        const frag = document.createDocumentFragment();
+        books.forEach((b) => frag.append(makeBookCard(b)));
+        results.append(frag);
+        bookState.lastStatus = books.length === 0 && reset ? "none" : "ok";
+        bookState.lastSource = source;
+        moreBtn.classList.toggle("hidden", !hasNext);
+      } catch (err) {
+        bookState.lastStatus = "error";
+        moreBtn.classList.add("hidden");
+        console.error(err);
+      }
+      renderBookStatus();
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      bookState.query = queryInput.value.trim();
+      bookState.page = 1;
+      loadBooks(true);
+    });
+    bookLangSelect.addEventListener("change", () => {
+      bookState.lang = bookLangSelect.value;
+      bookState.page = 1;
+      loadBooks(true);
+    });
+    moreBtn.addEventListener("click", () => { bookState.page += 1; loadBooks(false); });
+
+    // ================= Harry Potter =================
+    function potterItemView(cat, item) {
+      switch (cat) {
+        case "books":
+          return {
+            title: item.title || item.originalTitle || "",
+            sub: item.releaseDate ? `${t("releaseLabel")} : ${item.releaseDate}` : "",
+            text: item.description || "",
+            img: item.cover || "",
+            meta: item.pages ? `${item.pages} ${t("pagesUnit")}` : "",
+          };
+        case "characters":
+          return {
+            title: item.fullName || item.nickname || "",
+            sub: item.nickname && item.fullName ? item.nickname : (item.hogwartsHouse || ""),
+            text: item.interpretedBy ? `${t("actorLabel")} : ${item.interpretedBy}` : "",
+            img: item.image || "",
+            meta: item.hogwartsHouse ? `${t("houseLabel")} : ${item.hogwartsHouse}` : "",
+          };
+        case "houses":
+          return {
+            title: `${item.emoji || ""} ${item.house || ""}`.trim(),
+            sub: item.founder ? `${t("founderLabel")} : ${item.founder}` : "",
+            text: item.animal ? `${t("animalLabel")} : ${item.animal}` : "",
+            img: "",
+            meta: Array.isArray(item.colors) ? `${t("colorsLabel")} : ${item.colors.join(", ")}` : "",
+          };
+        default:
+          return { title: item.spell || "", sub: "", text: item.use || "", img: "", meta: "" };
+      }
+    }
+
+    function makePotterCard(cat, item) {
+      const v = potterItemView(cat, item);
+      const card = document.createElement("article");
+      card.className = "card";
+
+      if (v.img) {
+        const img = document.createElement("img");
+        img.className = "cover";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = v.title;
+        img.src = v.img;
+        img.onerror = () => img.replaceWith(Object.assign(document.createElement("div"), { className: "cover none", textContent: "✨" }));
+        card.append(img);
+      } else if (cat !== "spells") {
+        const ph = document.createElement("div");
+        ph.className = "cover none";
+        ph.textContent = cat === "houses" ? (item.emoji || "🏰") : "✨";
+        card.append(ph);
+      }
+
+      const h = document.createElement("h2");
+      h.textContent = v.title;
+      card.append(h);
+      if (v.sub) { const p = document.createElement("p"); p.className = "sub"; p.textContent = v.sub; card.append(p); }
+      if (v.text) { const p = document.createElement("p"); p.className = "text"; p.textContent = v.text; card.append(p); }
+      if (v.meta) { const p = document.createElement("p"); p.className = "meta"; p.textContent = v.meta; card.append(p); }
+      return card;
+    }
+
+    let potterShown = 0;
+    let potterFiltered = [];
+    function renderPotter(reset = true) {
+      const q = potterState.query.toLowerCase();
+      if (reset) {
+        potterFiltered = q
+          ? potterState.items.filter((it) => JSON.stringify(it).toLowerCase().includes(q))
+          : potterState.items;
+        potterShown = 0;
+        potterResults.replaceChildren();
+      }
+      const next = potterFiltered.slice(potterShown, potterShown + PAGE_POTTER);
+      const frag = document.createDocumentFragment();
+      next.forEach((it) => frag.append(makePotterCard(potterState.cat, it)));
+      potterResults.append(frag);
+      potterShown += next.length;
+
+      potterStatus.textContent = potterFiltered.length === 0 ? t("potterNone") : "";
+      potterMore.classList.toggle("hidden", potterShown >= potterFiltered.length);
+      potterNote.textContent = potterState.lang ? t("potterData") + ` (${potterState.lang.toUpperCase()})` : "";
+    }
+
+    async function loadPotterCategory(cat) {
+      potterState.cat = cat;
+      document.querySelectorAll("#potter-cats button").forEach((b) => b.classList.toggle("active", b.dataset.cat === cat));
+      potterStatus.textContent = t("loading");
+      potterResults.replaceChildren();
+      try {
+        const { items, lang } = await loadPotter(cat, uiLang);
+        potterState.items = items;
+        potterState.lang = lang;
+        renderPotter(true);
+      } catch (err) {
+        console.error(err);
+        potterState.items = [];
+        potterStatus.textContent = t("potterErr");
+        potterMore.classList.add("hidden");
+      }
+    }
+
+    document.querySelectorAll("#potter-cats button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        potterQuery.value = "";
+        potterState.query = "";
+        loadPotterCategory(btn.dataset.cat);
+      });
+    });
+
+    // Recherche Harry Potter : filtrage instantané côté navigateur (debounce léger)
+    let potterTimer = null;
+    potterQuery.addEventListener("input", () => {
+      clearTimeout(potterTimer);
+      potterTimer = setTimeout(() => {
+        potterState.query = potterQuery.value.trim();
+        renderPotter(true);
+      }, 180);
+    });
+    potterMore.addEventListener("click", () => renderPotter(false));
+
+    // ================= Ma liste et suivi de lecture =================
+    function renderTracker() {
+      tracker.replaceChildren();
+      const ids = Object.keys(library);
+      if (ids.length === 0) {
+        const p = document.createElement("p");
+        p.className = "empty glass";
+        p.textContent = t("emptyList");
+        tracker.append(p);
+        return;
+      }
+
+      ids.forEach((id) => {
+        const item = library[id];
+        const box = document.createElement("article");
+        box.className = "tracked card";
+
+        const cover = document.createElement("img");
+        cover.className = "cover";
+        cover.loading = "lazy";
+        cover.alt = item.title;
+        if (item.cover) cover.src = item.cover;
+        else cover.src = "logo.png";
+
+        const body = document.createElement("div");
+        body.className = "tracked-body";
+
+        const title = document.createElement("h2");
+        title.textContent = item.title;
+        const author = document.createElement("p");
+        author.className = "sub";
+        author.textContent = item.authors || t("unknownAuthor");
+
+        const bar = document.createElement("div");
+        bar.className = "progress";
+        const fill = document.createElement("div");
+        bar.append(fill);
+        const label = document.createElement("p");
+        label.className = "meta";
+
+        const inputs = document.createElement("div");
+        inputs.className = "page-inputs";
+        const currentInput = document.createElement("input");
+        currentInput.type = "number";
+        currentInput.min = "0";
+        currentInput.value = item.currentPage || 0;
+        const totalInput = document.createElement("input");
+        totalInput.type = "number";
+        totalInput.min = "1";
+        totalInput.value = item.totalPages || "";
+        totalInput.placeholder = t("total");
+        inputs.append(`${t("page")} `, currentInput, ` ${t("of")} `, totalInput);
+
+        const refresh = () => {
+          const total = Number(item.totalPages) || 0;
+          const current = Math.min(Number(item.currentPage) || 0, total || Infinity);
+          const pct = total ? Math.round((current / total) * 100) : 0;
+          fill.style.width = pct + "%";
+          label.textContent = total ? `${pct}% ${t("readPct")} (${current}/${total})` : t("needPages");
+        };
+        currentInput.addEventListener("change", () => {
+          item.currentPage = Math.max(0, Number(currentInput.value) || 0);
+          saveLibrary(); refresh();
+        });
+        totalInput.addEventListener("change", () => {
+          item.totalPages = Math.max(0, Number(totalInput.value) || 0);
+          saveLibrary(); refresh();
+        });
+
+        body.append(title, author, bar, label, inputs);
+
+        if (item.readUrl) {
+          const link = document.createElement("a");
+          link.className = "read";
+          link.href = item.readUrl;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = t("resume");
+          body.append(link);
+        }
+
+        const remove = document.createElement("button");
+        remove.className = "remove ghost";
+        remove.textContent = t("remove");
+        remove.addEventListener("click", () => {
+          delete library[id];
+          saveLibrary();
+          renderTracker();
+        });
+
+        box.append(cover, body, remove);
+        tracker.append(box);
+        refresh();
+      });
+    }
+
+    // ================= Démarrage =================
+    applyI18n();
+    bookState.lang = "";
+    bookLangSelect.value = "";
+    loadBooks(true);
+  </script>
+</body>
+  </html>
